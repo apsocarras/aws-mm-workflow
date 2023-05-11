@@ -4,14 +4,14 @@
 Sketch out a flexible multimodal ML workflow in AWS which can be adapted to different applications by swapping out the dataset, processing logic, and models while making minimal changes to the architecture itself.
 
 ### **Data pattern**: 
-Multimodal dataset with image and tabular files associated by primary ID. Some tabular records may be missing images, and some images may not have associated records of tabular data. This workflow will handle uneven data availability and will generate updated predictions whenever a previously-missing image or tabular record is uploaded.
+Multimodal dataset with image and tabular files associated by primary ID. Some tabular records may be missing images, and some images may not have associated records of tabular data.
 
 ![pet-images](img/images-resized.jpg)
 
 ![pet-tabular](img/tabular-resized.jpg)
 
 ### **Model**:
-One MM model trained on all available modalities, with an optional second model trained on a subset of the modalities. Either way, the ML stage of the workflow so that predictions for the image and non-image data are being generated separately.
+One multi-modal model trained on all available modalities, with an optional second model trained on a subset of the modalities. At the modeling phase of the workflow, pass the name of the model you want to use into the function as either an environmental variable or a value in the API request. This way the same lambda function can be used to deploy different models on different datasets.
 
 
 ![workflow-diagram](img/diagram-resized.png)

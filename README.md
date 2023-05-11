@@ -1,21 +1,25 @@
 ## Example Multimodal ML Workflow in AWS 
 
-### **Goal**: Sketch out a flexible multimodal ML workflow in AWS which can be adapted to different applications by swapping out the dataset, processing logic, and models while making minimal changes to the architecture itself.
+### **Goal**: 
+Sketch out a flexible multimodal ML workflow in AWS which can be adapted to different applications by swapping out the dataset, processing logic, and models while making minimal changes to the architecture itself.
 
-### **Data pattern**: Multimodal dataset with image and tabular files associated by primary ID. Some tabular records may be missing images, and some images may not have associated records of tabular data. This workflow will handle uneven data availability and will generate updated predictions whenever a previously-missing image or tabular record is uploaded.
+### **Data pattern**: 
+Multimodal dataset with image and tabular files associated by primary ID. Some tabular records may be missing images, and some images may not have associated records of tabular data. This workflow will handle uneven data availability and will generate updated predictions whenever a previously-missing image or tabular record is uploaded.
 
 ![pet-images](img/images-resized.jpg)
 
 ![pet-tabular](img/tabular-resized.jpg)
 
-### **Model**: One MM model trained on all available modalities, with an optional second model trained on a subset of the modalities. Either way, the ML stage of the workflow so that predictions for the image and non-image data are being generated separately.
+### **Model**:
+One MM model trained on all available modalities, with an optional second model trained on a subset of the modalities. Either way, the ML stage of the workflow so that predictions for the image and non-image data are being generated separately.
 
 
 ![workflow-diagram](img/diagram-resized.png)
 
-### **Workflow**: The event handling in this workflow can be handled without EventBridge by using S3 notifications and Lambda triggers ([tutorial](https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example.html)) and by invoking one lambda function directly from another (code included in example functions). You can quickly spin up most of the infrastructure for this workflow by using the CloudFormation template `mm-cfn-workflow.yaml` (CFN [tutorial](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.Walkthrough.html)).
+### **Workflow**: 
+The event handling in this workflow can be handled without EventBridge by using S3 notifications and Lambda triggers ([tutorial](https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example.html)) and by invoking one lambda function directly from another (code included in example functions). You can quickly spin up most of the infrastructure for this workflow by using the CloudFormation template `mm-cfn-workflow.yaml` (CFN [tutorial](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.Walkthrough.html)).
 
-### The CFN template should create everything except the Lambda function `lambda-mm-model` -- this is because an image must already exist in ECR before it can be used to create a lambda function. Follow the steps in `tutorials/lambda_fastapi_docker_tutorial.md` to build an image and deploy a Lambda function from it.
+The CFN template should create everything except the Lambda function `lambda-mm-model` -- this is because an image must already exist in ECR before it can be used to create a lambda function. Follow the steps in `tutorials/lambda_fastapi_docker_tutorial.md` to build an image and deploy a Lambda function from it.
 
 ```
 mm-cfn-workflow.yaml    

@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Function: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:unzip
+          Filter:
+            S3Key:
+              Rules:
+              - Name: suffix
+                Value: zip
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Suspended
+      Tags:
+      - Key: Name
+        Value: pet-adoption-mm
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  S3BucketMetadata:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}/metadata
+  S3BucketModels:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}/models
+  S3BucketResults:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}/results
+  S3BucketTmp:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}/tmp
+  S3BucketUploads:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}/uploads 
+
+  LambdaS3FullAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaS3FullAccess
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  LambdaContainerUser:
+  Type: "AWS::IAM::User"
+  Description: "IAM User created for pushing container images to ECR from the command line"
+  Properties:
+    UserName: "lambda_container_user"
+    Policies:
+      - PolicyName: "AmazonEC2ContainerRegistryFullAccessPolicy"
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action: "ecr:*"
+              Resource: "*"
+      - PolicyName: "AWSLambdaFullAccessPolicy"
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action: "lambda:*"
+              Resource: "*"
+      - PolicyName: "IAMFullAccessPolicy"
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action: "iam:*"
+              Resource: "*" 
+  Properties:
+    UserName: "lambda_container_user"
+    LoginProfile:
+      Password: "testpassword123"
+      PasswordResetRequired: true
+
+  UnzipFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: unzip
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaS3FullAccessRole.Arn
+      PackageType: "Zip"
+      Environment:
+        Variables:
+          BUCKET_NAME: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}
+          MODEL_DIR: models/mm-binclass-model
+          PRED_COL: AdoptionSpeed
+          TEMP_DATA: tmp/mmim.csv
+          UPLOAD_DIR: uploads
+      Code:
+        ZipFile: |
+          import json
+          def lambda_handler(event, context):
+              print(json.dumps(event))
+      Timeout: 300
+      TracingConfig:
+        Mode: Active
+      MemorySize: 256
+      Destinations:
+        DirectFlow:
+          Type: Lambda
+          Arn: !GetAtt DirectFlowFunction.Arn
+      Permissions:
+        - Action: lambda:InvokeFunction
+          Principal: "*"
+          SourceArn: !Sub "arn:aws:s3:::${S3Bucket}/*.zip"
+
+  DirectFlowFunction:
+  Type: AWS::Lambda::Function
+  Properties:
+    FunctionName: direct-flow
+    Runtime: python3.9
+    Handler: lambda_function.lambda_handler
+    Role: !GetAtt LambdaS3FullAccessRole.Arn
+    PackageType: "Zip"
+    Environment:
+      Variables:
+        BUCKET_NAME: pet-adoption-mm-#{AWS::Region}-#{AWS::AccountId}
+        MODEL_DIR: models/mm-binclass-model
+        PRED_COL: AdoptionSpeed
+        TEMP_DATA: tmp/mmim.csv
+        UPLOAD_DIR: uploads
+    Code:
+      ZipFile: |
+        import json
+        def lambda_handler(event, context):
+            print(json.dumps(event))
+    Timeout: 300
+    TracingConfig:
+      Mode: Active
+    ResourcePolicy:
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: lambda:InvokeFunction
+          Resource: "*"
+
+

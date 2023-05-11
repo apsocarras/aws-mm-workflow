@@ -1,0 +1,9 @@
+numpy
+fastapi
+mangum
+uvicorn
+torch
+torchvision
+autogluon
+boto3
+pandas

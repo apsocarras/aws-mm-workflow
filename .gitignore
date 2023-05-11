@@ -1,0 +1,7 @@
+lambda-mm-model/models/mm-binclass-model
+lambda_user_accessKeys.csv
+lambda_user_credentials.csv
+mm-cfn-workflow.json
+notes.txt
+venv/
+img/
